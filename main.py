@@ -56,14 +56,15 @@ def get_data_finviz(symbol):
   html = driver.page_source
   soup = BeautifulSoup(html, "html.parser")
   table = soup.find("table", {"class": "snapshot-table2"})
-  keys = [
-    "Market Cap",
-    "Short Float",
-    "Shs Float",
-    "Shs Outstand",
-  ]
-  for key in keys:
-    results[key] = table.findChildren("td", string=key)[0].next_sibling.string
+  if table:
+    keys = [
+      "Market Cap",
+      "Short Float",
+      "Shs Float",
+      "Shs Outstand",
+    ]
+    for key in keys:
+      results[key] = table.findChildren("td", string=key)[0].next_sibling.string
   return results
 
 
@@ -75,10 +76,7 @@ def save_active_stocks_finviz_to_file():
     finviz = get_data_finviz(symbol)
     finviz_df = pd.DataFrame(finviz, index=[0])
     showHeaders = True if index == 0 else False
-    try:
-      finviz_df.to_csv(file_name_finviz_summary, mode='a+', header=showHeaders, index=False)
-    except:
-      print('Error symbol:{}'.format(symbol))
+    finviz_df.to_csv(file_name_finviz_summary, mode='a+', header=showHeaders, index=False)
 
 
 if __name__ == "__main__":
