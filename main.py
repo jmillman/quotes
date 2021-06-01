@@ -38,7 +38,6 @@ def get_symbols_over_million_volume():
 
   results =  set()
   for i in range(len(files)):
-    print(files[i])
     # converter needed for symbol TRUE
     history = pd.read_csv(files[i], converters={"symbol": str})
     if history['volume'].max() > 1000000:
@@ -76,7 +75,10 @@ def save_active_stocks_finviz_to_file():
     finviz = get_data_finviz(symbol)
     finviz_df = pd.DataFrame(finviz, index=[0])
     showHeaders = True if index == 0 else False
-    finviz_df.to_csv(file_name_finviz_summary, mode='a+', header=showHeaders, index=False)
+    try:
+      finviz_df.to_csv(file_name_finviz_summary, mode='a+', header=showHeaders, index=False)
+    except:
+      print('Error symbol:{}'.format(symbol))
 
 
 if __name__ == "__main__":
