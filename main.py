@@ -70,7 +70,8 @@ def get_data_finviz(symbol):
 
 
 def save_active_stocks_finviz_to_file():
-  symbols_with_volume = get_symbols_over_million_volume()
+  symbols_with_volume = sorted(get_symbols_over_million_volume())
+
   for index, symbol in enumerate(symbols_with_volume):
     finviz = get_data_finviz(symbol)
     finviz_df = pd.DataFrame(finviz, index=[0])
