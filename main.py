@@ -99,7 +99,6 @@ def get_stats(symbol, date, start_time, end_time):
   daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
   daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
 
-
   # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
   # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
 
