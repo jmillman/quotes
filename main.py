@@ -10,21 +10,24 @@ from datetime import datetime, timedelta
 
 # driver = webdriver.Chrome("./chromedriver")
 
-directory_daily_history = "./local_stock_history"
-file_name_gap_up_summary = 'summary/gapped_up.csv'
+directory_daily_history = "./stock_history"
+file_name_gap = "./summary/gapped_up.csv"
 file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
 
 def save_gap_up_data_to_summary_file():
-  files = glob.glob("{}/*.csv".format(directory_daily_history))
+  files = sorted(glob.glob("{}/*.csv".format(directory_daily_history)))
 
   results =  pd.DataFrame()
   for i in range(len(files)):
-    print(files[i])
     history = pd.read_csv(files[i])
+    history['datetime'] = pd.to_datetime(history['datetime'])
+    history['date_only'] = history['datetime'].dt.date
+
+    # this is the earliest I have 5 min data
+    start = datetime(2020, 9, 14).date()
+    history = history[history['date_only'] >= start]
 
     if history['low'].min() != 0:
-      history['datetime'] = pd.to_datetime(history['datetime'])
-      history['date_only'] = history['datetime'].dt.date
       history['close_yesterday'] = history.close.shift(1)
       history['diff_percent'] = (history['open'] - history['close_yesterday']) * 100 / history['close_yesterday']
       history['gap_up'] = (history['diff_percent'] > 30) & (history['volume'] > 1000000)
@@ -32,7 +35,7 @@ def save_gap_up_data_to_summary_file():
       if len(gapped_up):
         results = results.append(gapped_up)
 
-  results.to_csv(file_name_gap_up_summary, mode='a+', header=True, index=False)
+  results.to_csv(file_name_gap, mode='a+', header=True, index=False)
 
 def get_symbols_over_million_volume():
   files = glob.glob("{}/*.csv".format(directory_daily_history))
@@ -91,62 +94,111 @@ def get_stock_by_date(symbol, date):
   return day_quote
 
 def get_stats(symbol, date, start_time, end_time):
-  file_name_five_min = "./stock_history_minute_five_extended_2021_05_28_to_2020_09_14/{}.csv".format(symbol)
-  daily_quotes = pd.read_csv(file_name_five_min)
-  # get the time in EST
+  if date > '2021-05-28':
+    file_name_five_min = "./stock_history_minute_five_extended_2021_06_01_to_2021_06_04/{}.csv".format(symbol)
+  else:
+    file_name_five_min = "./stock_history_minute_five_extended_2021_05_28_to_2020_09_14/{}.csv".format(symbol)
 
-  daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
-  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
-  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
+  low = ''
+  high = ''
+  low_time = ''
+  high_time = ''
+  try:
+    daily_quotes = pd.read_csv(file_name_five_min)
+    # get the time in EST
 
-  # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
-  # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
+    daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
+    daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
+    daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
+    daily_quotes['time_only'] = daily_quotes['datetime'].dt.time
 
-  start = '{} {}'.format(date, start_time)
-  end = '{} {}'.format(date, end_time)
+    # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
+    # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
 
-  day = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
-  min_value = day['low'].min()
-  max_value = day['high'].max()
+    start = '{} {}'.format(date, start_time)
+    end = '{} {}'.format(date, end_time)
+
+    day = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
+    low = day['low'].min()
+    high = day['high'].max()
+
+    if not pd.isna(low):
+      low_time = day[day['low'] == low].iloc[0]['time_only']
+      high_time = day[day['high'] == high].iloc[0]['time_only']
+  except:
+    print('{} file not found: {}  {}'.format(file_name_five_min, symbol, date))
+
+
   stats = {
-    'min_value': min_value,
-    'max_value': day['high'].max(),
-    'min_time': day[day['low'] == min_value].iloc[0]['datetime'],
-    'max_time': day[day['high'] == max_value].iloc[0]['datetime'],
+    'low': low,
+    'high': high,
+    'low_time': low_time,
+    'high_time': high_time,
   }
   return stats
 
+def add_high_low_to_gap_up():
+  gapped = pd.read_csv(file_name_gap)
+  for i, row in gapped.iterrows():
+    symbol = row['symbol']
+    pre_market = get_stats(symbol, row['date_only'], '06:30:00', '09:30:00')
+    morning = get_stats(symbol, row['date_only'], '09:30:00', '10:30:00')
+    market = get_stats(symbol, row['date_only'], '09:30:00', '16:00:00')
+    gapped.loc[i, 'pre_high'] = pre_market['high']
+    gapped.loc[i, 'pre_low'] = pre_market['low']
+    gapped.loc[i, 'pre_high_time'] = pre_market['high_time']
+    gapped.loc[i, 'pre_low_time'] = pre_market['low_time']
+
+    gapped.loc[i, 'morning_high'] = morning['high']
+    gapped.loc[i, 'morning_low'] = morning['low']
+    gapped.loc[i, 'morning_high_time'] = morning['high_time']
+    gapped.loc[i, 'morning_low_time'] = morning['low_time']
+
+    gapped.loc[i, 'market_high'] = market['high']
+    gapped.loc[i, 'market_low'] = market['low']
+    gapped.loc[i, 'market_high_time'] = market['high_time']
+    gapped.loc[i, 'market_low_time'] = market['low_time']
+  gapped.to_csv(file_name_gap, index=False)
+
+def convert_billion_to_mill(str):
+  if str == '-' or pd.isna(str):
+    return 0
+  elif 'B' in str:
+    return float(str.replace("B", "")) * 1000
+  else:
+    return float(str.replace("M", ""))
+
+def add_finviz_to_gap_up():
+  file_name_finviz = "./summary/finviz-2021-05-31.csv"
+  gapped = pd.read_csv(file_name_gap)
+  finviz = pd.read_csv(file_name_finviz)
+  for i, row in gapped.iterrows():
+    symbol = row['symbol']
+    finviz_item = finviz[finviz['Symbol'] == symbol]
+    if(len(finviz_item)):
+      gapped.loc[i, 'float'] = convert_billion_to_mill(finviz_item.iloc[0]['Shs Float'])
+      shares = convert_billion_to_mill(finviz_item.iloc[0]['Shs Outstand'])
+      gapped.loc[i, 'shares'] = shares
+      gapped.loc[i, 'market_cap'] = "{:.2f}".format(shares * row['close_yesterday'])
+
+  gapped.to_csv(file_name_gap, index=False)
+
+
+
 
 if __name__ == "__main__":
-  # save_gap_up_data_to_summary_file()
-  # save_active_stocks_finviz_to_file()
-
-  # quote = get_stock_by_date('TSLA', '2021-04-13')
-  # all_pre_market = get_stats('TSLA', '2021-03-15', '04:00:00', '09:30:00')
-  # pre_market_630 = get_stats('TSLA', '2021-03-15', '06:30:00', '09:30:00')
-  # pre_market_630 = get_stats('TSLA', '2021-03-12', '06:30:00', '06:35:00')
-  # open_market = get_stats('TSLA', '2021-03-15', '09:30:00', '10:30:00')
-  # stats = get_stats('ASTC', '2021-04-07', '09:30:00', '16:00:00')
-
 
   # quote = get_stock_by_date('ASTC', '2021-03-12')
   # stats = get_stats('ASTC', '2021-03-12', '09:30:00', '16:00:00')
-  # stats2 = get_stats('ASTC', '2021-03-15', '09:30:00', '16:00:00')
-  #
-  # print(stats)
 
-  pre_market_730 = get_stats('TSLA', '2021-03-12', '07:30:00', '07:35:00')
-  pre_market_830 = get_stats('TSLA', '2021-03-12', '08:30:00', '08:35:00')
-  if(pre_market_730['min_value'] == 677.41):
-    print('pre-daylight savings working')
-  if(pre_market_830['min_value'] == 677.41):
-    print('pre-daylight savings NOT working')
+  # Will save finviz data for any stock that had over a million in volume
+  # save_active_stocks_finviz_to_file()
 
-  pre_market_730_POST = get_stats('TSLA', '2021-03-15', '07:30:00', '07:35:00')
-  pre_market_830_POST = get_stats('TSLA', '2021-03-15', '08:30:00', '08:35:00')
-  if(pre_market_730_POST['min_value'] == 694.0):
-    print('post-daylight savings working')
-  else:
-    print('post-daylight savings NOT working')
+  # find gap up instances, save to file
+  save_gap_up_data_to_summary_file()
+  # go through instance and find the high low stats
+  add_high_low_to_gap_up()
+  #add the finvis info to the gap up
+  add_finviz_to_gap_up()
 
   print('END')
