@@ -84,6 +84,8 @@ def get_stock_by_date(symbol, date):
   file_name_daily = "./stock_history/{}.csv".format(symbol)
   daily_quotes = pd.read_csv(file_name_daily)
   daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
+  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
+  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
   daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
   day_quote = daily_quotes[daily_quotes['date_only'] == datetime.strptime(date, '%Y-%m-%d').date()]
   return day_quote
@@ -92,8 +94,14 @@ def get_stats(symbol, date, start_time, end_time):
   file_name_five_min = "./stock_history_minute_five_extended_2021_05_28_to_2020_09_14/{}.csv".format(symbol)
   daily_quotes = pd.read_csv(file_name_five_min)
   # get the time in EST
-  daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
-  daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
+
+  daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
+  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
+  daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
+
+
+  # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
+  # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
 
   start = '{} {}'.format(date, start_time)
   end = '{} {}'.format(date, end_time)
