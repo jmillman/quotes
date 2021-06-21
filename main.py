@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # driver = webdriver.Chrome("./chromedriver")
 
 directory_daily_history = "./stock_history"
-file_name_gap = "./summary/gapped_up.csv"
+file_name_gap = "./summary/gapped_up-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
 file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
 
 def save_gap_up_data_to_summary_file():
@@ -95,9 +95,9 @@ def get_stock_by_date(symbol, date):
 
 def get_stats(symbol, date, start_time, end_time):
   if date > '2021-05-28':
-    file_name_five_min = "./stock_history_minute_five_extended_2021_06_01_to_2021_06_04/{}.csv".format(symbol)
+    file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_06_18/{}.csv".format(symbol)
   else:
-    file_name_five_min = "./stock_history_minute_five_extended_2021_05_28_to_2020_09_14/{}.csv".format(symbol)
+    file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
 
   low = ''
   high = ''
@@ -179,7 +179,7 @@ def add_finviz_to_gap_up():
       gapped.loc[i, 'float'] = convert_billion_to_mill(finviz_item.iloc[0]['Shs Float'])
       shares = convert_billion_to_mill(finviz_item.iloc[0]['Shs Outstand'])
       gapped.loc[i, 'shares'] = shares
-      gapped.loc[i, 'market_cap'] = "{:.2f}".format(shares * row['close_yesterday'])
+      gapped.loc[i, 'market_cap'] = "{:.2f}".format(shares * float(row['close_yesterday']))
 
   gapped.to_csv(file_name_gap, index=False)
 
