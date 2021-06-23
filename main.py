@@ -216,10 +216,10 @@ if __name__ == "__main__":
   # save_active_stocks_finviz_to_file()
 
   # find gap up instances, save to file
-  save_gap_up_data_to_summary_file()
+  # save_gap_up_data_to_summary_file()
   # go through instance and find the high low stats
-  add_high_low_to_gap_up()
+  # add_high_low_to_gap_up()
   #add the finvis info to the gap up
-  # add_finviz_to_gap_up()
+  add_finviz_to_gap_up()
 
   print('END')
