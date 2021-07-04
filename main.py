@@ -95,7 +95,7 @@ def get_stock_by_date(symbol, date):
 
 def get_stats(symbol, date, start_time, end_time):
   if date > '2021-05-28':
-    file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_06_18/{}.csv".format(symbol)
+    file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_CURRENT/{}.csv".format(symbol)
   else:
     file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
 
@@ -105,6 +105,8 @@ def get_stats(symbol, date, start_time, end_time):
   high_time = ''
   close = ''
   close_time = ''
+  open = ''
+  open_time = ''
   try:
     daily_quotes = pd.read_csv(file_name_five_min)
     # get the time in EST
@@ -125,6 +127,8 @@ def get_stats(symbol, date, start_time, end_time):
     high = day['high'].max()
     close = day['close'].iloc[-1]
     close_time = day['time_only'].iloc[-1]
+    open = day['open'].iloc[1]
+    open_time = day['time_only'].iloc[1]
 
     if not pd.isna(low):
       low_time = day[day['low'] == low].iloc[0]['time_only']
@@ -139,9 +143,22 @@ def get_stats(symbol, date, start_time, end_time):
     'low_time': low_time,
     'high_time': high_time,
     'close': close,
-    'close_time': close_time
+    'close_time': close_time,
+    'open': open,
+    'open_time': open_time
   }
   return stats
+
+def add_columns(gapped, i, title, stats_obj):
+  gapped.loc[i, '{}_open'.format(title)] = stats_obj['open']
+  gapped.loc[i, '{}_open_time'.format(title)] = stats_obj['open_time']
+  gapped.loc[i, '{}_high'.format(title)] = stats_obj['high']
+  gapped.loc[i, '{}_high_time'.format(title)] = stats_obj['high_time']
+  gapped.loc[i, '{}_low'.format(title)] = stats_obj['low']
+  gapped.loc[i, '{}_low_time'.format(title)] = stats_obj['low_time']
+  gapped.loc[i, '{}_close'.format(title)] = stats_obj['close']
+  gapped.loc[i, '{}_close_time'.format(title)] = stats_obj['close_time']
+
 
 def add_high_low_to_gap_up():
   gapped = pd.read_csv(file_name_gap)
@@ -152,33 +169,46 @@ def add_high_low_to_gap_up():
     ten_thirty_to_close = get_stats(symbol, row['date_only'], '10:30:00', '16:00:00')
     market = get_stats(symbol, row['date_only'], '09:30:00', '16:00:00')
 
-    gapped.loc[i, 'pre_high'] = pre_market['high']
-    gapped.loc[i, 'pre_low'] = pre_market['low']
-    gapped.loc[i, 'pre_close'] = pre_market['close']
-    gapped.loc[i, 'pre_high_time'] = pre_market['high_time']
-    gapped.loc[i, 'pre_low_time'] = pre_market['low_time']
-    gapped.loc[i, 'pre_close_time'] = pre_market['close_time']
+    add_columns(gapped, i, 'pre', pre_market)
+    add_columns(gapped, i, 'morning', morning)
+    add_columns(gapped, i, 'ten_thirty_to_close', ten_thirty_to_close)
+    add_columns(gapped, i, 'market', market)
 
-    gapped.loc[i, 'morning_high'] = morning['high']
-    gapped.loc[i, 'morning_low'] = morning['low']
-    gapped.loc[i, 'morning_close'] = morning['close']
-    gapped.loc[i, 'morning_high_time'] = morning['high_time']
-    gapped.loc[i, 'morning_low_time'] = morning['low_time']
-    gapped.loc[i, 'morning_close_time'] = morning['close_time']
-
-    gapped.loc[i, '1030_close_high'] = ten_thirty_to_close['high']
-    gapped.loc[i, '1030_close_low'] = ten_thirty_to_close['low']
-    gapped.loc[i, '1030_close_close'] = ten_thirty_to_close['close']
-    gapped.loc[i, '1030_close_high_time'] = ten_thirty_to_close['high_time']
-    gapped.loc[i, '1030_close_low_time'] = ten_thirty_to_close['low_time']
-    gapped.loc[i, '1030_close_time'] = ten_thirty_to_close['close_time']
-
-    gapped.loc[i, 'market_high'] = market['high']
-    gapped.loc[i, 'market_low'] = market['low']
-    gapped.loc[i, 'market_close'] = market['close']
-    gapped.loc[i, 'market_high_time'] = market['high_time']
-    gapped.loc[i, 'market_low_time'] = market['low_time']
-    gapped.loc[i, 'market_close_time'] = market['close_time']
+    # gapped.loc[i, 'pre_open'] = pre_market['open']
+    # gapped.loc[i, 'pre_open_time'] = pre_market['open_time']
+    # gapped.loc[i, 'pre_high'] = pre_market['high']
+    # gapped.loc[i, 'pre_high_time'] = pre_market['high_time']
+    # gapped.loc[i, 'pre_low'] = pre_market['low']
+    # gapped.loc[i, 'pre_low_time'] = pre_market['low_time']
+    # gapped.loc[i, 'pre_close'] = pre_market['close']
+    # gapped.loc[i, 'pre_close_time'] = pre_market['close_time']
+    #
+    # gapped.loc[i, 'morning_open'] = morning['open']
+    # gapped.loc[i, 'morning_open_time'] = morning['open_time']
+    # gapped.loc[i, 'morning_high'] = morning['high']
+    # gapped.loc[i, 'morning_high_time'] = morning['high_time']
+    # gapped.loc[i, 'morning_low'] = morning['low']
+    # gapped.loc[i, 'morning_low_time'] = morning['low_time']
+    # gapped.loc[i, 'morning_close'] = morning['close']
+    # gapped.loc[i, 'morning_close_time'] = morning['close_time']
+    #
+    # gapped.loc[i, '1030_close_open'] = ten_thirty_to_close['open']
+    # gapped.loc[i, '1030_close_open_time'] = ten_thirty_to_close['open_time']
+    # gapped.loc[i, '1030_close_high'] = ten_thirty_to_close['high']
+    # gapped.loc[i, '1030_close_high_time'] = ten_thirty_to_close['high_time']
+    # gapped.loc[i, '1030_close_low'] = ten_thirty_to_close['low']
+    # gapped.loc[i, '1030_close_low_time'] = ten_thirty_to_close['low_time']
+    # gapped.loc[i, '1030_close_close'] = ten_thirty_to_close['close']
+    # gapped.loc[i, '1030_close_time'] = ten_thirty_to_close['close_time']
+    #
+    # gapped.loc[i, 'market_open'] = market['open']
+    # gapped.loc[i, 'market_open_time'] = market['open_time']
+    # gapped.loc[i, 'market_high'] = market['high']
+    # gapped.loc[i, 'market_high_time'] = market['high_time']
+    # gapped.loc[i, 'market_low'] = market['low']
+    # gapped.loc[i, 'market_low_time'] = market['low_time']
+    # gapped.loc[i, 'market_close'] = market['close']
+    # gapped.loc[i, 'market_close_time'] = market['close_time']
   gapped.to_csv(file_name_gap, index=False)
 
 def convert_billion_to_mill(str):
@@ -218,8 +248,8 @@ if __name__ == "__main__":
   # find gap up instances, save to file
   # save_gap_up_data_to_summary_file()
   # go through instance and find the high low stats
-  # add_high_low_to_gap_up()
+  add_high_low_to_gap_up()
   #add the finvis info to the gap up
-  add_finviz_to_gap_up()
+  # add_finviz_to_gap_up()
 
   print('END')
