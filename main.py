@@ -225,9 +225,9 @@ if __name__ == "__main__":
 
   # find gap up instances, save to file
   save_gap_up_data_to_summary_file()
-  # go through instance and find the high low stats
+  # # go through instance and find the high low stats
   add_high_low_to_gap_up()
-  #add the finvis info to the gap up
+  # #add the finvis info to the gap up
   add_finviz_to_gap_up()
 
   print('END')
