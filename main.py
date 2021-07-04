@@ -160,55 +160,33 @@ def add_columns(gapped, i, title, stats_obj):
   gapped.loc[i, '{}_close_time'.format(title)] = stats_obj['close_time']
 
 
+def get_summary_data(gapped, i, date_only, title, symbol, start_time, end_time):
+  summary = get_stats(symbol, date_only, start_time, end_time)
+  add_columns(gapped, i, title, summary)
+
+
 def add_high_low_to_gap_up():
   gapped = pd.read_csv(file_name_gap)
   for i, row in gapped.iterrows():
     symbol = row['symbol']
-    pre_market = get_stats(symbol, row['date_only'], '06:30:00', '09:30:00')
-    morning = get_stats(symbol, row['date_only'], '09:30:00', '10:30:00')
-    ten_thirty_to_close = get_stats(symbol, row['date_only'], '10:30:00', '16:00:00')
-    market = get_stats(symbol, row['date_only'], '09:30:00', '16:00:00')
+    date_only = row['date_only']
 
-    add_columns(gapped, i, 'pre', pre_market)
-    add_columns(gapped, i, 'morning', morning)
-    add_columns(gapped, i, 'ten_thirty_to_close', ten_thirty_to_close)
-    add_columns(gapped, i, 'market', market)
+    get_summary_data(gapped, i, date_only, 'pre', symbol, '07:30:00', '09:30:00')
+    get_summary_data(gapped, i, date_only, 'first_fifteen', symbol, '09:30:00', '9:45:00')
+    get_summary_data(gapped, i, date_only, 'first_thirty', symbol, '09:30:00', '10:00:00')
+    get_summary_data(gapped, i, date_only, 'first_hour', symbol, '09:30:00', '10:30:00')
+    get_summary_data(gapped, i, date_only, 'ten_thirty_to_close', symbol, '10:30:00', '16:00:00')
 
-    # gapped.loc[i, 'pre_open'] = pre_market['open']
-    # gapped.loc[i, 'pre_open_time'] = pre_market['open_time']
-    # gapped.loc[i, 'pre_high'] = pre_market['high']
-    # gapped.loc[i, 'pre_high_time'] = pre_market['high_time']
-    # gapped.loc[i, 'pre_low'] = pre_market['low']
-    # gapped.loc[i, 'pre_low_time'] = pre_market['low_time']
-    # gapped.loc[i, 'pre_close'] = pre_market['close']
-    # gapped.loc[i, 'pre_close_time'] = pre_market['close_time']
-    #
-    # gapped.loc[i, 'morning_open'] = morning['open']
-    # gapped.loc[i, 'morning_open_time'] = morning['open_time']
-    # gapped.loc[i, 'morning_high'] = morning['high']
-    # gapped.loc[i, 'morning_high_time'] = morning['high_time']
-    # gapped.loc[i, 'morning_low'] = morning['low']
-    # gapped.loc[i, 'morning_low_time'] = morning['low_time']
-    # gapped.loc[i, 'morning_close'] = morning['close']
-    # gapped.loc[i, 'morning_close_time'] = morning['close_time']
-    #
-    # gapped.loc[i, '1030_close_open'] = ten_thirty_to_close['open']
-    # gapped.loc[i, '1030_close_open_time'] = ten_thirty_to_close['open_time']
-    # gapped.loc[i, '1030_close_high'] = ten_thirty_to_close['high']
-    # gapped.loc[i, '1030_close_high_time'] = ten_thirty_to_close['high_time']
-    # gapped.loc[i, '1030_close_low'] = ten_thirty_to_close['low']
-    # gapped.loc[i, '1030_close_low_time'] = ten_thirty_to_close['low_time']
-    # gapped.loc[i, '1030_close_close'] = ten_thirty_to_close['close']
-    # gapped.loc[i, '1030_close_time'] = ten_thirty_to_close['close_time']
-    #
-    # gapped.loc[i, 'market_open'] = market['open']
-    # gapped.loc[i, 'market_open_time'] = market['open_time']
-    # gapped.loc[i, 'market_high'] = market['high']
-    # gapped.loc[i, 'market_high_time'] = market['high_time']
-    # gapped.loc[i, 'market_low'] = market['low']
-    # gapped.loc[i, 'market_low_time'] = market['low_time']
-    # gapped.loc[i, 'market_close'] = market['close']
-    # gapped.loc[i, 'market_close_time'] = market['close_time']
+    get_summary_data(gapped, i, date_only, 'second_fifteen', symbol, '09:45:00', '10:00:00')
+    get_summary_data(gapped, i, date_only, 'second_thirty', symbol, '10:00:00', '10:30:00')
+    get_summary_data(gapped, i, date_only, 'second_hour', symbol, '10:30:00', '11:30:00')
+    get_summary_data(gapped, i, date_only, 'eleven_thirty_to_close', symbol, '11:30:00', '16:00:00')
+
+    get_summary_data(gapped, i, date_only, 'third_fifteen', symbol, '10:00:00', '10:15:00')
+    get_summary_data(gapped, i, date_only, 'third_thirty', symbol, '10:30:00', '11:00:00')
+    get_summary_data(gapped, i, date_only, 'third_hour', symbol, '11:30:00', '12:30:00')
+    get_summary_data(gapped, i, date_only, 'twelve_thirty_to_close', symbol, '12:30:00', '16:00:00')
+
   gapped.to_csv(file_name_gap, index=False)
 
 def convert_billion_to_mill(str):
@@ -246,10 +224,10 @@ if __name__ == "__main__":
   # save_active_stocks_finviz_to_file()
 
   # find gap up instances, save to file
-  # save_gap_up_data_to_summary_file()
+  save_gap_up_data_to_summary_file()
   # go through instance and find the high low stats
   add_high_low_to_gap_up()
   #add the finvis info to the gap up
-  # add_finviz_to_gap_up()
+  add_finviz_to_gap_up()
 
   print('END')
