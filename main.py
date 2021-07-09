@@ -151,18 +151,63 @@ def get_stats(symbol, date, start_time, end_time):
 
 def add_columns(gapped, i, title, stats_obj):
   gapped.loc[i, '{}_open'.format(title)] = stats_obj['open']
-  gapped.loc[i, '{}_open_time'.format(title)] = stats_obj['open_time']
+  # gapped.loc[i, '{}_open_time'.format(title)] = stats_obj['open_time']
   gapped.loc[i, '{}_high'.format(title)] = stats_obj['high']
-  gapped.loc[i, '{}_high_time'.format(title)] = stats_obj['high_time']
+  # gapped.loc[i, '{}_high_time'.format(title)] = stats_obj['high_time']
   gapped.loc[i, '{}_low'.format(title)] = stats_obj['low']
-  gapped.loc[i, '{}_low_time'.format(title)] = stats_obj['low_time']
+  # gapped.loc[i, '{}_low_time'.format(title)] = stats_obj['low_time']
   gapped.loc[i, '{}_close'.format(title)] = stats_obj['close']
-  gapped.loc[i, '{}_close_time'.format(title)] = stats_obj['close_time']
+  # gapped.loc[i, '{}_close_time'.format(title)] = stats_obj['close_time']
 
 
 def get_summary_data(gapped, i, date_only, title, symbol, start_time, end_time):
   summary = get_stats(symbol, date_only, start_time, end_time)
   add_columns(gapped, i, title, summary)
+
+
+def add_booleans_to_gap_up():
+  gapped = pd.read_csv(file_name_gap)
+  gapped['pre_high_gte_daily_high'] = gapped['pre_high'] >= gapped['daily_high']
+  gapped['second_fifteen_high10P_gte_first_fifteen_close'] = gapped['second_fifteen_high'] * 1.1 >= gapped['first_fifteen_close']
+  gapped['second_thirty_high10P_gte_first_thirty'] = gapped['second_thirty_high'] * 1.1 >= gapped['first_thirty_close']
+  gapped['daily_high_gt_pre_high10P'] = gapped['daily_high'] > gapped['pre_high'] * 1.1
+  gapped.to_csv(file_name_gap, index=False)
+
+def get_current_and_cum_volume(df, time_stamp):
+  current_vol = df[(df['datetime'] == time_stamp)]["volume"].sum()
+  total_vol = df[(df['datetime'] <= time_stamp)]["volume"].sum()
+  return current_vol, total_vol
+
+
+def add_volume_to_gap_up():
+  gapped = pd.read_csv(file_name_gap)
+  for i, row in gapped.iterrows():
+    symbol = row["symbol"]
+    date = row["date_only"]
+    if date > '2021-05-28':
+      file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_CURRENT/{}.csv".format(symbol)
+    else:
+      file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
+
+    try:
+      daily_quotes = pd.read_csv(file_name_five_min)
+
+      if row["float"] != 0:
+        time_stamp = datetime.strptime('{} 09:30:00'.format(date), '%Y-%m-%d %H:%M:%S')
+        for five_min_index in range(5):
+          current_vol, total_vol = get_current_and_cum_volume(daily_quotes, time_stamp)
+          gapped.loc[i, "f_{}_v_c".format(five_min_index)] = current_vol
+          gapped.loc[i, "f_{}_v_t".format(five_min_index)] = total_vol
+          gapped.loc[i, "f_{}_fr_c".format(five_min_index)] = current_vol / (row["float"] * 1000000)
+          gapped.loc[i, "f_{}_fr_t".format(five_min_index)] = total_vol / (row["float"] * 1000000)
+          time_stamp = time_stamp + timedelta(minutes=5)
+
+      else:
+        print('{} has 0 float'.format(symbol))
+    except:
+      print('{} file not found: {}  {}'.format(file_name_five_min, symbol, date))
+
+  gapped.to_csv(file_name_gap, index=False)
 
 
 def add_high_low_to_gap_up():
@@ -172,6 +217,7 @@ def add_high_low_to_gap_up():
     date_only = row['date_only']
 
     get_summary_data(gapped, i, date_only, 'pre', symbol, '07:30:00', '09:30:00')
+    get_summary_data(gapped, i, date_only, 'daily', symbol, '09:30:00', '16:00:00')
     get_summary_data(gapped, i, date_only, 'first_fifteen', symbol, '09:30:00', '9:45:00')
     get_summary_data(gapped, i, date_only, 'first_thirty', symbol, '09:30:00', '10:00:00')
     get_summary_data(gapped, i, date_only, 'first_hour', symbol, '09:30:00', '10:30:00')
@@ -224,10 +270,12 @@ if __name__ == "__main__":
   # save_active_stocks_finviz_to_file()
 
   # find gap up instances, save to file
-  save_gap_up_data_to_summary_file()
-  # # go through instance and find the high low stats
-  add_high_low_to_gap_up()
-  # #add the finvis info to the gap up
-  add_finviz_to_gap_up()
+  # save_gap_up_data_to_summary_file()
+  # # # # go through instance and find the high low stats
+  # add_high_low_to_gap_up()
+  # # # #add the finvis info to the gap up
+  # add_finviz_to_gap_up()
+  # add_booleans_to_gap_up()
+  add_volume_to_gap_up()
 
   print('END')
