@@ -178,7 +178,6 @@ def get_current_and_cum_volume(df, time_stamp):
   total_vol = df[(df['datetime'] <= time_stamp)]["volume"].sum()
   return current_vol, total_vol
 
-
 def add_volume_to_gap_up():
   gapped = pd.read_csv(file_name_gap)
   for i, row in gapped.iterrows():
@@ -192,15 +191,23 @@ def add_volume_to_gap_up():
     try:
       daily_quotes = pd.read_csv(file_name_five_min)
 
+
+
+      daily_quotes['date_only'] = pd.to_datetime(daily_quotes['datetime']).dt.date
+
+      start = '{} {}'.format(date, "00:00:00")
+      end = '{} {}'.format(date, "24:00:00")
+      daily_quotes = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
+
       if row["float"] != 0:
-        time_stamp = datetime.strptime('{} 09:30:00'.format(date), '%Y-%m-%d %H:%M:%S')
-        for five_min_index in range(5):
-          current_vol, total_vol = get_current_and_cum_volume(daily_quotes, time_stamp)
+        for five_min_index in range(37):
+          time_stamp = datetime.strptime('{} 09:30:00'.format(date), '%Y-%m-%d %H:%M:%S') + (timedelta(minutes=5) * five_min_index)
+          time_string = time_stamp.strftime('%Y-%m-%d %H:%M:%S')
+          current_vol, total_vol = get_current_and_cum_volume(daily_quotes, time_string)
           gapped.loc[i, "f_{}_v_c".format(five_min_index)] = current_vol
           gapped.loc[i, "f_{}_v_t".format(five_min_index)] = total_vol
           gapped.loc[i, "f_{}_fr_c".format(five_min_index)] = current_vol / (row["float"] * 1000000)
           gapped.loc[i, "f_{}_fr_t".format(five_min_index)] = total_vol / (row["float"] * 1000000)
-          time_stamp = time_stamp + timedelta(minutes=5)
 
       else:
         print('{} has 0 float'.format(symbol))
