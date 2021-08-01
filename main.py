@@ -318,7 +318,7 @@ def convert_billion_to_mill(str):
 
 
 def add_finviz_to_gap_up():
-  file_name_finviz = "./summary/finviz-2021-05-31.csv"
+  file_name_finviz = "./summary/finviz-2021-07-03.csv"
   gapped = pd.read_csv(file_name_gap)
   finviz = pd.read_csv(file_name_finviz)
   for i, row in gapped.iterrows():
