@@ -337,9 +337,6 @@ def add_finviz_to_gap_up():
 
 
 if __name__ == "__main__":
-  # quote = get_stock_by_date('ASTC', '2021-03-12')
-  # stats = get_stats('ASTC', '2021-03-12', '09:30:00', '16:00:00')
-
   # Will save finviz data for any stock that had over a million in volume
   # save_active_stocks_finviz_to_file()
 
