@@ -10,10 +10,19 @@ from datetime import datetime, timedelta
 
 # driver = webdriver.Chrome("./chromedriver")
 
-directory_daily_history = "./stock_history"
+directory_daily_history = "./stock_history_2021"
 file_name_gap = "./summary/gapped_up-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
 file_name_gap2 = "./summary/gapped_up-{}-2.csv".format(datetime.now().strftime("%Y-%m-%d"))
 file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
+
+def get_file(symbol, date):
+  if date > '2021-07-03':
+    file_name_five_min = "./stock_history_minute_extended_2021_07_05_to_2021_CURRENT/{}.csv".format(symbol)
+  elif date > '2021-05-28' and date <= '2021-07-02':
+    file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_07_02/{}.csv".format(symbol)
+  else:
+    file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
+  return file_name_five_min
 
 def save_gap_up_data_to_summary_file():
   files = sorted(glob.glob("{}/*.csv".format(directory_daily_history)))
@@ -95,10 +104,7 @@ def get_stock_by_date(symbol, date):
   return day_quote
 
 def get_stats(symbol, date, start_time, end_time):
-  if date > '2021-05-28':
-    file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_07_02/{}.csv".format(symbol)
-  else:
-    file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
+  file_name_five_min = get_file(symbol, date)
 
   low = -1
   high = -1
@@ -115,31 +121,32 @@ def get_stats(symbol, date, start_time, end_time):
     print('{} file not found: {}  {}'.format(file_name_five_min, symbol, date))
 
   try:
-    daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
-    daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
-    daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
-    daily_quotes['time_only'] = daily_quotes['datetime'].dt.time
+    if len(daily_quotes):
+      daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
+      daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
+      daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
+      daily_quotes['time_only'] = daily_quotes['datetime'].dt.time
 
-    # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
-    # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
+      # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
+      # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
 
-    start = '{} {}'.format(date, start_time)
-    end = '{} {}'.format(date, end_time)
+      start = '{} {}'.format(date, start_time)
+      end = '{} {}'.format(date, end_time)
 
-    day = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
-    if len(day):
-      low = day['low'].min()
-      high = day['high'].max()
-      close = day['close'].iloc[-1]
-      close_time = day['time_only'].iloc[-1]
-      open = day['open'].iloc[1]
-      open_time = day['time_only'].iloc[1]
+      day = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
+      if len(day):
+        low = day['low'].min()
+        high = day['high'].max()
+        close = day['close'].iloc[-1]
+        close_time = day['time_only'].iloc[-1]
+        open = day['open'].iloc[1]
+        open_time = day['time_only'].iloc[1]
 
-      if not pd.isna(low):
-        low_time = day[day['low'] == low].iloc[0]['time_only']
-        high_time = day[day['high'] == high].iloc[0]['time_only']
-    else:
-      print('Data Not found {} {} {} {}'.format(symbol, date, start_time, end_time))
+        if not pd.isna(low):
+          low_time = day[day['low'] == low].iloc[0]['time_only']
+          high_time = day[day['high'] == high].iloc[0]['time_only']
+      else:
+        print('Data Not found {} {} {} {}'.format(symbol, date, start_time, end_time))
 
   except Exception as e:
     print(e)
@@ -173,22 +180,42 @@ def get_summary_data(gapped, i, date_only, title, symbol, start_time, end_time):
   add_columns(gapped, i, title, summary)
 
 
+def add_bool_columns(gapped, name):
+  percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped['open']
+  gapped['{}_percent_max_gain'.format(name)] = percent_change_high
+  gapped['{}_percent_max_gain_gt_05p'.format(name)] = percent_change_high > .05
+  gapped['{}_percent_max_gain_gt_10p'.format(name)] = percent_change_high > .10
+  gapped['{}_percent_max_gain_gt_20p'.format(name)] = percent_change_high > .20
+  gapped['{}_percent_max_gain_gt_50p'.format(name)] = percent_change_high > .50
+  gapped['{}_percent_max_gain_gt_100p'.format(name)] = percent_change_high > 1
+
+  percent_change_low = (gapped['{}_open'.format(name)] - gapped['{}_low'.format(name)]) / gapped['open']
+  gapped['{}_percent_max_loss'.format(name)] = percent_change_low
+  gapped['{}_percent_max_loss_gt_05p'.format(name)] = percent_change_low > .05
+  gapped['{}_percent_max_loss_gt_10p'.format(name)] = percent_change_low > .10
+  gapped['{}_percent_max_loss_gt_20p'.format(name)] = percent_change_low > .20
+  gapped['{}_percent_max_loss_gt_50p'.format(name)] = percent_change_low > .50
+  gapped['{}_percent_max_loss_gt_100p'.format(name)] = percent_change_low > 1
+
+
 def add_booleans_to_gap_up():
   gapped = pd.read_csv(file_name_gap)
 
-  gapped['second_fifteen_percent_max_gain'] = gapped['second_fifteen_high'] - gapped['first_fifteen_close'] / gapped['open']
-  gapped['second_fifteen_percent_max_gain_gt5P'] = (gapped['second_fifteen_high'] - gapped['first_fifteen_close'] / gapped['open']) > .05
-  gapped['second_fifteen_percent_max_gain_gt10P'] = (gapped['second_fifteen_high'] - gapped['first_fifteen_close'] / gapped['open']) > .10
-  gapped['second_fifteen_percent_max_gain_gt20P'] = (gapped['second_fifteen_high'] - gapped['first_fifteen_close'] / gapped['open']) > .20
+  add_bool_columns(gapped, 'fifteen_01')
+  add_bool_columns(gapped, 'fifteen_02')
+  add_bool_columns(gapped, 'fifteen_03')
+  add_bool_columns(gapped, 'fifteen_04')
+  add_bool_columns(gapped, 'fifteen_05')
 
-  gapped['second_fifteen_percent_max_loss'] = gapped['first_fifteen_close'] - gapped['second_fifteen_low'] / gapped['open']
-  gapped['second_fifteen_percent_max_loss_gt5p'] = (gapped['first_fifteen_close'] - gapped['second_fifteen_low'] / gapped['open']) > .05
-  gapped['second_fifteen_percent_max_loss_gt5p'] = (gapped['first_fifteen_close'] - gapped['second_fifteen_low'] / gapped['open']) > .1
-  gapped['second_fifteen_percent_max_loss_gt5p'] = (gapped['first_fifteen_close'] - gapped['second_fifteen_low'] / gapped['open']) > .2
+  add_bool_columns(gapped, 'thirty_01')
+  add_bool_columns(gapped, 'thirty_02')
+  add_bool_columns(gapped, 'thirty_03')
+  add_bool_columns(gapped, 'thirty_04')
 
-  gapped['open_to_max_percent_gain'] = (gapped['high'] - gapped['open'] / gapped['open'])
-  gapped['open_to_max_percent_gain_gt50P'] = (gapped['high'] - gapped['open'] / gapped['open']) > .5
-  gapped['open_to_max_percent_gain_gt100P'] = (gapped['high'] - gapped['open'] / gapped['open']) > .5
+  add_bool_columns(gapped, 'ten_thirty_to_close')
+  add_bool_columns(gapped, 'eleven_thirty_to_close')
+  add_bool_columns(gapped, 'twelve_thirty_to_close')
+
   gapped.to_csv(file_name_gap2, index=False)
 
 def get_current_and_cum_volume(df, time_stamp):
@@ -201,10 +228,7 @@ def add_volume_to_gap_up():
   for i, row in gapped.iterrows():
     symbol = row["symbol"]
     date = row["date_only"]
-    if date > '2021-05-28':
-      file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_CURRENT/{}.csv".format(symbol)
-    else:
-      file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
+    file_name_five_min = get_file(symbol, date)
 
     try:
       daily_quotes = pd.read_csv(file_name_five_min)
@@ -244,19 +268,24 @@ def add_high_low_to_gap_up():
 
     get_summary_data(gapped, i, date_only, 'pre', symbol, '07:30:00', '09:30:00')
     get_summary_data(gapped, i, date_only, 'daily', symbol, '09:30:00', '16:00:00')
-    get_summary_data(gapped, i, date_only, 'first_fifteen', symbol, '09:30:00', '9:45:00')
-    get_summary_data(gapped, i, date_only, 'first_thirty', symbol, '09:30:00', '10:00:00')
-    get_summary_data(gapped, i, date_only, 'first_hour', symbol, '09:30:00', '10:30:00')
+
+    get_summary_data(gapped, i, date_only, 'fifteen_01', symbol, '09:30:00', '9:45:00')
+    get_summary_data(gapped, i, date_only, 'fifteen_02', symbol, '09:45:00', '10:00:00')
+    get_summary_data(gapped, i, date_only, 'fifteen_03', symbol, '10:00:00', '10:15:00')
+    get_summary_data(gapped, i, date_only, 'fifteen_04', symbol, '10:15:00', '10:30:00')
+    get_summary_data(gapped, i, date_only, 'fifteen_05', symbol, '10:30:00', '10:45:00')
+
+    get_summary_data(gapped, i, date_only, 'thirty_01', symbol, '09:30:00', '10:00:00')
+    get_summary_data(gapped, i, date_only, 'thirty_02', symbol, '10:00:00', '10:30:00')
+    get_summary_data(gapped, i, date_only, 'thirty_03', symbol, '10:30:00', '11:00:00')
+    get_summary_data(gapped, i, date_only, 'thirty_04', symbol, '11:00:00', '11:30:00')
+
+    get_summary_data(gapped, i, date_only, 'hour_01', symbol, '09:30:00', '10:30:00')
+    get_summary_data(gapped, i, date_only, 'hour_02', symbol, '10:30:00', '11:30:00')
+    get_summary_data(gapped, i, date_only, 'hour_03', symbol, '11:30:00', '12:30:00')
+
     get_summary_data(gapped, i, date_only, 'ten_thirty_to_close', symbol, '10:30:00', '16:00:00')
-
-    get_summary_data(gapped, i, date_only, 'second_fifteen', symbol, '09:45:00', '10:00:00')
-    get_summary_data(gapped, i, date_only, 'second_thirty', symbol, '10:00:00', '10:30:00')
-    get_summary_data(gapped, i, date_only, 'second_hour', symbol, '10:30:00', '11:30:00')
     get_summary_data(gapped, i, date_only, 'eleven_thirty_to_close', symbol, '11:30:00', '16:00:00')
-
-    get_summary_data(gapped, i, date_only, 'third_fifteen', symbol, '10:00:00', '10:15:00')
-    get_summary_data(gapped, i, date_only, 'third_thirty', symbol, '10:30:00', '11:00:00')
-    get_summary_data(gapped, i, date_only, 'third_hour', symbol, '11:30:00', '12:30:00')
     get_summary_data(gapped, i, date_only, 'twelve_thirty_to_close', symbol, '12:30:00', '16:00:00')
 
   gapped.to_csv(file_name_gap, index=False)
@@ -296,12 +325,12 @@ if __name__ == "__main__":
   # save_active_stocks_finviz_to_file()
 
   # find gap up instances, save to file
-  # save_gap_up_data_to_summary_file()
-  # # # # # go through instance and find the high low stats
-  # add_high_low_to_gap_up()
-  # # # # #add the finvis info to the gap up
-  # add_finviz_to_gap_up()
-  # add_volume_to_gap_up()
+  #save_gap_up_data_to_summary_file()
+  # # # # # # go through instance and find the high low stats
+  add_high_low_to_gap_up()
+  # # # # # #add the finvis info to the gap up
+  add_finviz_to_gap_up()
+  add_volume_to_gap_up()
   add_booleans_to_gap_up()
 
   print('END')
