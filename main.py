@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
 import pandas as pd
 import glob
 import time
@@ -188,9 +191,9 @@ def get_summary_data(gapped, i, date_only, title, symbol, start_time, end_time):
   else:
     add_columns(gapped, i, title, summary)
 
-
+#percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped['open']
 def add_bool_columns(gapped, name):
-  percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped['open']
+  percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped['{}_open'.format(name)] #changed the denominator for slots
   gapped['{}_percent_max_gain'.format(name)] = percent_change_high
   gapped['{}_percent_max_gain_gt_05p'.format(name)] = percent_change_high > .05
   gapped['{}_percent_max_gain_gt_10p'.format(name)] = percent_change_high > .10
@@ -198,7 +201,7 @@ def add_bool_columns(gapped, name):
   gapped['{}_percent_max_gain_gt_50p'.format(name)] = percent_change_high > .50
   gapped['{}_percent_max_gain_gt_100p'.format(name)] = percent_change_high > 1
 
-  percent_change_low = (gapped['{}_open'.format(name)] - gapped['{}_low'.format(name)]) / gapped['open']
+  percent_change_low = (gapped['{}_open'.format(name)] - gapped['{}_low'.format(name)]) / gapped['{}_open'.format(name)]
   gapped['{}_percent_max_loss'.format(name)] = percent_change_low
   gapped['{}_percent_max_loss_gt_05p'.format(name)] = percent_change_low > .05
   gapped['{}_percent_max_loss_gt_10p'.format(name)] = percent_change_low > .10
@@ -209,17 +212,24 @@ def add_bool_columns(gapped, name):
 
 def add_booleans_to_gap_up():
   gapped = pd.read_csv(file_name_gap)
-
+  
+  add_bool_columns(gapped, 'fifteen_00')
   add_bool_columns(gapped, 'fifteen_01')
   add_bool_columns(gapped, 'fifteen_02')
   add_bool_columns(gapped, 'fifteen_03')
   add_bool_columns(gapped, 'fifteen_04')
   add_bool_columns(gapped, 'fifteen_05')
-
+  add_bool_columns(gapped, 'fifteen_06')
+  add_bool_columns(gapped, 'fifteen_07')
+  add_bool_columns(gapped, 'fifteen_08')
+  add_bool_columns(gapped, 'fifteen_09')
+  #add_bool_columns(gapped, 'fifteen_10')
+  
+  add_bool_columns(gapped, 'thirty_00')
   add_bool_columns(gapped, 'thirty_01')
   add_bool_columns(gapped, 'thirty_02')
   add_bool_columns(gapped, 'thirty_03')
-  add_bool_columns(gapped, 'thirty_04')
+  
 
   add_bool_columns(gapped, 'ten_thirty_to_close')
   add_bool_columns(gapped, 'eleven_thirty_to_close')
@@ -286,16 +296,22 @@ def add_high_low_to_gap_up():
       get_summary_data(gapped, i, date_only, 'pre', symbol, '07:30:00', '09:30:00')
       get_summary_data(gapped, i, date_only, 'daily', symbol, '09:30:00', '16:00:00')
 
-      get_summary_data(gapped, i, date_only, 'fifteen_01', symbol, '09:30:00', '9:45:00')
-      get_summary_data(gapped, i, date_only, 'fifteen_02', symbol, '09:45:00', '10:00:00')
-      get_summary_data(gapped, i, date_only, 'fifteen_03', symbol, '10:00:00', '10:15:00')
-      get_summary_data(gapped, i, date_only, 'fifteen_04', symbol, '10:15:00', '10:30:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_00', symbol, '09:30:00', '9:45:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_01', symbol, '09:45:00', '10:00:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_02', symbol, '10:00:00', '10:15:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_03', symbol, '10:15:00', '10:30:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_04', symbol, '10:30:00', '10:45:00')
       get_summary_data(gapped, i, date_only, 'fifteen_05', symbol, '10:30:00', '10:45:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_06', symbol, '10:45:00', '11:00:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_07', symbol, '11:00:00', '11:15:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_08', symbol, '11:15:00', '11:30:00')
+      get_summary_data(gapped, i, date_only, 'fifteen_09', symbol, '11:30:00', '11:45:00')
+      
 
-      get_summary_data(gapped, i, date_only, 'thirty_01', symbol, '09:30:00', '10:00:00')
-      get_summary_data(gapped, i, date_only, 'thirty_02', symbol, '10:00:00', '10:30:00')
-      get_summary_data(gapped, i, date_only, 'thirty_03', symbol, '10:30:00', '11:00:00')
-      get_summary_data(gapped, i, date_only, 'thirty_04', symbol, '11:00:00', '11:30:00')
+      get_summary_data(gapped, i, date_only, 'thirty_00', symbol, '09:30:00', '10:00:00')
+      get_summary_data(gapped, i, date_only, 'thirty_01', symbol, '10:00:00', '10:30:00')
+      get_summary_data(gapped, i, date_only, 'thirty_02', symbol, '10:30:00', '11:00:00')
+      get_summary_data(gapped, i, date_only, 'thirty_03', symbol, '11:00:00', '11:30:00')
 
       get_summary_data(gapped, i, date_only, 'hour_01', symbol, '09:30:00', '10:30:00')
       get_summary_data(gapped, i, date_only, 'hour_02', symbol, '10:30:00', '11:30:00')
@@ -349,4 +365,7 @@ if __name__ == "__main__":
   add_volume_to_gap_up()
   add_booleans_to_gap_up()
 
-  print('END')
+  print('END') 
+  
+  
+  
