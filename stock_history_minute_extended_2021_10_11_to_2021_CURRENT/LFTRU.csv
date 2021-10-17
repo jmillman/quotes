@@ -1,0 +1,2 @@
+open,high,low,close,volume,datetime,symbol
+10.0,10.0,10.0,10.0,149321,2021-10-13 17:12:00,LFTRU
