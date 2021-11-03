@@ -9,9 +9,9 @@ import os
 import re
 
 
-directory_daily_history = "./stock_history_2021"
-file_name_gap = "./summary/gapped_up-{}-1.csv".format(datetime.now().strftime("%Y-%m-%d"))
-file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
+directory_daily_history = "./stock_history/2021/daily"
+file_name_gap = "./summary/gapped_up-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
+# file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
 
 
 
@@ -29,18 +29,8 @@ file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftim
 
 
 def get_file(symbol, date):
-    if date > '2021-10-09':
-        file_name_five_min = "./stock_history_five_minute_extended_2021_10_11_CURRENT/{}.csv".format(symbol)
-    elif date > '2021-08-21' and date <= '2021-10-09':
-        file_name_five_min = "./stock_history_five_minute_extended_2021_08_23_to_2021_10_08/{}.csv".format(symbol)
-    elif date > '2021-07-03' and date <= '2021-08-21':
-        file_name_five_min = "./stock_history_minute_extended_2021_07_05_to_2021_08_20/{}.csv".format(symbol)
-    elif date > '2021-05-28' and date <= '2021-07-02':
-        file_name_five_min = "./stock_history_five_minute_extended_2021_06_01_to_2021_07_02/{}.csv".format(symbol)
-    elif date > '2020-09-13' and date <= '2021-05-28':
-        file_name_five_min = "./stock_history_five_minute_extended_2020_09_14_to_2021_05_28/{}.csv".format(symbol)
-    else:
-        print('get_file else {} {}'.format(symbol, date))
+    year, month, day = date.split('-')
+    file_name_five_min = "./stock_history/{}/five_minute/{}/{}.csv".format(year, month, symbol)
     return file_name_five_min
 
 
@@ -596,8 +586,11 @@ def add_booleans_new():
         add_bool_columns_new(gapped, slice)
 
     volume = gapped['volume']
-    gapped['rotate'] = float(gapped['volume']) < (float(gapped['float']) * 1000000)
-    gapped['rotate_count'] = float(gapped['volume']) / (float(gapped['float']) * 1000000)
+    gapped['volume'] = gapped['volume'].astype(float)
+    gapped['float'] = gapped['float'].astype(float)
+
+    gapped['rotate'] = gapped['volume'] < (gapped['float'] * 1000000)
+    gapped['rotate_count'] = gapped['volume'] / (gapped['float'] * 1000000)
     gapped.to_csv(file_name_gap, index=False)
 
 
@@ -625,6 +618,44 @@ def calculate_stats_from_booleans():
             count = 10
         count += 1
 
+def check_dir(directory_name):
+  if not os.path.exists(directory_name):
+    os.makedirs(directory_name)
+
+# This is the code I used to split the files into the new format by month
+# def reclassify_files():
+#     type = 'minute'
+#     # stock_folder = 'stock_history_five_minute_extended_2020_09_14_to_2021_05_28'
+#     folders = sorted(glob.glob("./*history_minute*"))
+#     for folder in folders:
+#         files = sorted(glob.glob("{}/*.csv".format(folder)))
+#         for i in range(len(files)):
+#             symbol = files[i].split('/')[2].split('.')[0]
+#             quote_file = pd.read_csv(files[i])
+#             # quote_file = quote_file[quote_file['datetime'].str.startswith('2021')]
+#
+#             # This will give year-month like 2021-09
+#             dates = sorted(set(quote_file['datetime'].str.split(' ', expand=True)[0].str[:-3]))
+#             for date in dates:
+#                 year, month = date.split('-')
+#                 filename = './stock_history/{}'.format(year)
+#                 check_dir(filename)
+#                 filename = './stock_history/{}/{}/'.format(year, type)
+#                 check_dir(filename)
+#                 filename = './stock_history/{}/{}/{}'.format(year, type, month)
+#                 check_dir(filename)
+#                 filename = './stock_history/{}/{}/{}/{}.csv'.format(year, type, month, symbol)
+#
+#                 # don't do 2021, since that is when I will start pulling that way
+#                 if year == '2021' and month == '10':
+#                     pass
+#                 else:
+#                     dates_worth_of_quotes = quote_file[quote_file['datetime'].str.startswith(date)]
+#                     showHeader = not os.path.isfile(filename)
+#                     dates_worth_of_quotes.to_csv(filename, mode='a+', header=showHeader, index=False)
+#
+#                 print('{} {}'.format(symbol, date))
+
 
 if __name__ == "__main__":
 
@@ -641,10 +672,10 @@ if __name__ == "__main__":
     # add_volume_to_gap_up()
     # add_booleans_to_gap_up()
 
-    start = datetime(2021, 1, 1).date()
-    save_gap_up_data_to_summary_file(start, 20)
-    add_finviz_to_gap_up()
-    add_high_low_time_to_gap_up()
+    # start = datetime(2021, 1, 1).date()
+    # save_gap_up_data_to_summary_file(start, 20)
+    # add_finviz_to_gap_up()
+    # add_high_low_time_to_gap_up()
     add_booleans_new()
     calculate_stats_from_booleans()
 
