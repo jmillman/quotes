@@ -474,6 +474,8 @@ def add_high_low_time_to_gap_up():
             get_summary_data(gapped, i, date_only, 'pre_market', symbol, '07:30:00', '09:30:00')
             get_summary_data(gapped, i, date_only, 'day', symbol, '09:30:00', '16:00:00')
 
+            get_summary_data(gapped, i, date_only, '930_935', symbol, '09:30:00', '9:35:00')
+            get_summary_data(gapped, i, date_only, '935_940', symbol, '09:35:00', '9:40:00')
             get_summary_data(gapped, i, date_only, '930_945', symbol, '09:30:00', '9:45:00')
             get_summary_data(gapped, i, date_only, '945_950', symbol, '09:45:00', '09:50:00')
             get_summary_data(gapped, i, date_only, '945_955', symbol, '09:45:00', '09:55:00')
@@ -580,17 +582,22 @@ def add_bool_columns_new(gapped, name):
 def add_booleans_new():
     gapped = pd.read_csv(file_name_gap)
 
+    volume = gapped['volume']
+    gapped['volume'] = gapped['volume'].astype(float)
+    gapped['float'] = gapped['float'].astype(float)
+
+    gapped['first_bar_up'] = gapped['930_935_close'] >= gapped['930_935_open']
+    gapped['second_bar_up'] = gapped['935_940_close'] >= gapped['935_940_open']
+    gapped['both_bars_up'] = gapped['first_bar_up'] & gapped['second_bar_up']
+
+    gapped['rotate'] = gapped['volume'] < (gapped['float'] * 1000000)
+    gapped['rotate_count'] = gapped['volume'] / (gapped['float'] * 1000000)
+
     slices = ['pre_market', 'day', '930_945', '945_950', '945_955', '945_10', '945_4', '930_10', '10_4', '930_1030',
               '1030_4', '930_11', '11_4', '1130_4', '12_4']
     for slice in slices:
         add_bool_columns_new(gapped, slice)
 
-    volume = gapped['volume']
-    gapped['volume'] = gapped['volume'].astype(float)
-    gapped['float'] = gapped['float'].astype(float)
-
-    gapped['rotate'] = gapped['volume'] < (gapped['float'] * 1000000)
-    gapped['rotate_count'] = gapped['volume'] / (gapped['float'] * 1000000)
     gapped.to_csv(file_name_gap, index=False)
 
 
@@ -670,10 +677,10 @@ if __name__ == "__main__":
     # add_volume_to_gap_up()
     # add_booleans_to_gap_up()
 
-    start = datetime(2021, 1, 1).date()
-    save_gap_up_data_to_summary_file(start, 20)
-    add_finviz_to_gap_up()
-    add_high_low_time_to_gap_up()
+    # start = datetime(2021, 1, 1).date()
+    # save_gap_up_data_to_summary_file(start, 20)
+    # add_finviz_to_gap_up()
+    # add_high_low_time_to_gap_up()
     add_booleans_new()
     calculate_stats_from_booleans()
 
