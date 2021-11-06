@@ -677,10 +677,10 @@ if __name__ == "__main__":
     # add_volume_to_gap_up()
     # add_booleans_to_gap_up()
 
-    # start = datetime(2021, 1, 1).date()
-    # save_gap_up_data_to_summary_file(start, 20)
-    # add_finviz_to_gap_up()
-    # add_high_low_time_to_gap_up()
+    start = datetime(2021, 1, 1).date()
+    save_gap_up_data_to_summary_file(start, 20)
+    add_finviz_to_gap_up()
+    add_high_low_time_to_gap_up()
     add_booleans_new()
     calculate_stats_from_booleans()
 
