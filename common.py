@@ -7,7 +7,6 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import os
 import re
-from common import
 
 
 directory_daily_history = "./stock_history/2021/daily"
