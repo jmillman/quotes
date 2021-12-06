@@ -7,6 +7,7 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import os
 import re
+from main import save_gap_up_data_to_summary_file
 
 
 directory_daily_history = "./stock_history/2021/daily"
