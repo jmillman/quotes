@@ -7,128 +7,11 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import os
 import re
-from common import
+from common import get_file, save_gap_up_data_to_summary_file, get_symbols_over_million_volume, get_data_finviz, scrape_yahoo_stats, check_dir, add_finviz_to_gap_up, get_summary_data, get_stats
 
 
 directory_daily_history = "./stock_history/2021/daily"
 file_name_gap = "./summary/gapped_up-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
-# file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
-
-
-
-# CHROMEDRIVER = os.path.abspath("chromedriver.exe")
-# BINARY_LOCATION = os.path.abspath(r"chromium\chrome.exe")
-
-# chrome_options = webdriver.chrome.options.Options()
-# chrome_options.add_argument("--no-sandbox")
-# driver = webdriver.Chrome("./chromedriver", options=chrome_options)
-#
-# For some reason, yahoo loads much faster headless
-# chrome_options2 = webdriver.chrome.options.Options()
-# chrome_options2.add_argument("--headless")
-# driver_yahoo = webdriver.Chrome("./chromedriver", options=chrome_options2)
-
-
-def get_file(symbol, date):
-    year, month, day = date.split('-')
-    file_name_five_min = "./stock_history/{}/five_minute/{}/{}.csv".format(year, month, symbol)
-    return file_name_five_min
-
-
-def save_gap_up_data_to_summary_file(start, minimum_percentage):
-    files = sorted(glob.glob("{}/*.csv".format(directory_daily_history)))
-
-    results = pd.DataFrame()
-    for i in range(len(files)):
-        history = pd.read_csv(files[i])
-        history['datetime'] = pd.to_datetime(history['datetime'])
-        history['date_only'] = history['datetime'].dt.date
-
-        # this is the earliest I have 5 min data
-        # start = datetime(2020, 9, 14).date()
-        history = history[history['date_only'] >= start]
-        # history = history[history['date_only'] == datetime(2021, 2, 9).date()]
-
-        if history['low'].min() != 0:
-            history['close_yesterday'] = history.close.shift(1)
-            open = history['open']
-            close_yesterday = history['close_yesterday']
-            high = history['high']
-            low = history['low']
-            vol = history['volume']
-            gap_percent = ((open - close_yesterday) * 100 / close_yesterday)
-
-            history['closed_up'] = history['open'] < history['close']
-            history['gap_percent'] = gap_percent
-            history['max_up_percent'] = ((high - open) * 100 / open)
-            history['max_down_percent'] = ((open - low) * 100 / open)
-            history['max_up_percent_30'] = ((high - open) * 100 / open > 30)
-            history['max_down_percent_30'] = ((open - low) * 100 / open > 30)
-            history['max_up_percent_50'] = ((high - open) * 100 / open > 50)
-            history['max_down_percent_50'] = ((open - low) * 100 / open > 50)
-            history['max_up_percent_100'] = ((high - open) * 100 / open > 100)
-
-            # history['both'] = (history['max_up_percent_threshold'] == "True") & (history['max_down_percent_threshold'] == 'True')
-            # history['both1'] = (history['max_up_percent_threshold'] == "True") and (history['max_down_percent_threshold'] == 'True')
-            #
-            # history['both2'] = (history['max_up_percent_threshold'] == "TRUE") & (history['max_down_percent_threshold'] == 'TRUE')
-            # history['both3'] = (history['max_up_percent_threshold'] == "TRUE") and (history['max_down_percent_threshold'] == 'TRUE')
-            #
-            # history['both4'] = (bool(history['max_up_percent_threshold']) is True) & (bool(history['max_down_percent_threshold']) is True)
-            # history['both5'] = (bool(history['max_up_percent_threshold'] is True) and (history['max_down_percent_threshold'] is True)
-
-            matching_rows = history[(history['gap_percent'] >= minimum_percentage) & (history['volume'] > 1000000)]
-            if len(matching_rows):
-                results = results.append(matching_rows)
-
-    results.to_csv(file_name_gap, mode='a+', header=True, index=False)
-
-
-#     if history['low'].min() != 0:
-#       history['close_yesterday'] = history.close.shift(1)
-#       history['diff_percent'] = (history['open'] - history['close_yesterday']) * 100 / history['close_yesterday']
-#       history['gap_up'] = (history['diff_percent'] > 30) & (history['volume'] > 1000000)
-#       gapped_up = history[history['gap_up'] == True]
-#       if len(gapped_up):
-#         results = results.append(gapped_up)
-#
-#   results.to_csv(file_name_gap, mode='a+', header=True, index=False)
-
-
-def get_symbols_over_million_volume():
-    files = glob.glob("{}/*.csv".format(directory_daily_history))
-
-    results = set()
-    for i in range(len(files)):
-        # converter needed for symbol TRUE
-        history = pd.read_csv(files[i], converters={"symbol": str})
-        if history['volume'].max() > 1000000:
-            results.add(history.iloc[0]['symbol'])
-            if True in results:
-                print(results)
-    return results
-
-
-def get_data_finviz(symbol):
-    results = {}
-    results["Symbol"] = symbol
-
-    url = "https://finviz.com/quote.ashx?t=" + symbol
-    driver.get(url)
-    time.sleep(0)
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    table = soup.find("table", {"class": "snapshot-table2"})
-    if table:
-        keys = [
-            "Market Cap",
-            "Short Float",
-            "Shs Float",
-            "Shs Outstand",
-        ]
-        for key in keys:
-            results[key] = table.findChildren("td", string=key)[0].next_sibling.string
-    return results
 
 
 def scrape_yahoo_stats(soup, results, search_item):
@@ -234,76 +117,6 @@ def get_stock_by_date(symbol, date):
     return day_quote
 
 
-def get_stats(symbol, date, start_time, end_time):
-    file_name_five_min = get_file(symbol, date)
-
-    low = -1
-    high = -1
-    low_time = ''
-    high_time = ''
-    high_touch = 1
-    low_touch = 1
-    close = -1
-    close_time = ''
-    open = -1
-    open_time = ''
-    stats_error = False
-    try:
-        daily_quotes = pd.read_csv(file_name_five_min)
-        # get the time in EST
-    except:
-        print('{} file not found: {}  {}'.format(file_name_five_min, symbol, date))
-
-    try:
-        if len(daily_quotes):
-            daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime'])
-            daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_localize('UTC')
-            daily_quotes['datetime'] = daily_quotes['datetime'].dt.tz_convert('US/Eastern')
-            daily_quotes['time_only'] = daily_quotes['datetime'].dt.time
-
-            # daily_quotes['datetime'] = pd.to_datetime(daily_quotes['datetime']) - timedelta(hours=4)
-            # daily_quotes['date_only'] = daily_quotes['datetime'].dt.date
-
-            start = '{} {}'.format(date, start_time)
-            end = '{} {}'.format(date, end_time)
-
-            day = daily_quotes[(daily_quotes['datetime'] >= start) & (daily_quotes['datetime'] <= end)]
-            if len(day):
-                low = day['low'].min()
-                high = day['high'].max()
-                close = day['close'].iloc[-1]
-                close_time = day['time_only'].iloc[-1]
-                open = day['open'].iloc[1]
-                open_time = day['time_only'].iloc[1]
-
-                if not pd.isna(low):
-                    low_time = day[day['low'] == low].iloc[0]['time_only']
-                    low_touch = len(day[day['low'] == low])
-                    high_time = day[day['high'] == high].iloc[0]['time_only']
-                    high_touch = len(day[day['high'] == high])
-            else:
-                print('Data Not found {} {} {} {}'.format(symbol, date, start_time, end_time))
-                stats_error = True
-
-    except Exception as e:
-        print(e)
-
-    stats = {
-        'low': low,
-        'high': high,
-        'low_time': low_time,
-        'low_touch': low_touch,
-        'high_time': high_time,
-        'high_touch': high_touch,
-        'close': close,
-        'close_time': close_time,
-        'open': open,
-        'open_time': open_time,
-        'stats_error': stats_error
-    }
-    return stats
-
-
 def add_columns(gapped, i, title, stats_obj):
     gapped.loc[i, '{}_open'.format(title)] = stats_obj['open']
     # gapped.loc[i, '{}_open_time'.format(title)] = stats_obj['open_time']
@@ -315,16 +128,6 @@ def add_columns(gapped, i, title, stats_obj):
     gapped.loc[i, '{}_low_touch'.format(title)] = stats_obj['low_touch']
     gapped.loc[i, '{}_close'.format(title)] = stats_obj['close']
     # gapped.loc[i, '{}_close_time'.format(title)] = stats_obj['close_time']
-
-
-def get_summary_data(gapped, i, date_only, title, symbol, start_time, end_time):
-    summary = get_stats(symbol, date_only, start_time, end_time)
-    if summary['stats_error']:
-        # gapped.drop(i, inplace=True)
-        gapped.loc[i, 'DATA_MISSING_STATS'] = True
-        print('get_summary_data error {}'.format(symbol))
-    else:
-        add_columns(gapped, i, title, summary)
 
 
 # percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped['open']
@@ -497,7 +300,6 @@ def add_high_low_time_to_gap_up():
     gapped = gapped[gapped['DATA_MISSING_5MIN'] != 1]
     gapped.to_csv(file_name_gap, index=False)
 
-
 def convert_billion_to_mill(str):
     if str == '-' or pd.isna(str):
         return 0
@@ -507,50 +309,6 @@ def convert_billion_to_mill(str):
         return float(str.replace("B", "")) * 1000
     else:
         return float(str.replace("M", ""))
-
-
-def add_finviz_to_gap_up():
-    file_name_finviz = "./summary/finviz-2021-10-30.csv"
-    gapped = pd.read_csv(file_name_gap)
-    finviz = pd.read_csv(file_name_finviz)
-    for i, row in gapped.iterrows():
-        missingData = False
-        symbol = row['symbol']
-        finviz_item = finviz[finviz['Symbol'] == symbol]
-
-        if (len(finviz_item)):
-
-            # If no float, but shares use shares for float and vice versa
-            # typically it's really low shares outstanding so the float has to be less than that
-            float_shrs = finviz_item.iloc[0]['Shs Float']
-            if float_shrs in ['Not Found', 'N/A', '-']:
-                float_shrs = 0
-                missingData = True
-
-            shares = finviz_item.iloc[0]['Shs Outstand']
-            if shares in ['Not Found', 'N/A', '-']:
-                missingData = True
-                shares = float_shrs
-
-            if float_shrs == 0:
-                float_shrs = shares
-
-            if(float_shrs != 0):
-                float_shrs = convert_billion_to_mill(float_shrs)
-            if(shares != 0):
-                shares = convert_billion_to_mill(shares)
-            gapped.loc[i, 'float'] = shares
-            gapped.loc[i, 'shares'] = shares
-            gapped.loc[i, 'market_cap'] = "{:.2f}".format(shares * float(gapped.loc[i, 'close_yesterday']))
-        else:
-            missingData = True
-            print('Finviz missing symbol: {}'.format(symbol))
-
-        if missingData == True:
-            gapped.loc[i, 'DATA_MISSING_FINVIZ'] = True
-
-    gapped.to_csv(file_name_gap, index=False)
-
 
 def add_bool_columns_new(gapped, name):
     gapped['{}_never_broke_pre_high'.format(name)] = gapped['{}_high'.format(name)] <= gapped['pre_market_high']
@@ -579,7 +337,6 @@ def add_bool_columns_new(gapped, name):
     # gapped['{}_percent_both_25p'.format(name)] = bool(percent_change_high >= .25) and bool(percent_change_low >= .25)
     # gapped['{}_percent_both_50p'.format(name)] = bool(percent_change_high >= .50) and bool(percent_change_low >= .50)
 
-
 def add_booleans_new():
     gapped = pd.read_csv(file_name_gap)
 
@@ -600,7 +357,6 @@ def add_booleans_new():
         add_bool_columns_new(gapped, slice)
 
     gapped.to_csv(file_name_gap, index=False)
-
 
 def calculate_stats_from_booleans():
     gapped = pd.read_csv(file_name_gap)
@@ -626,9 +382,7 @@ def calculate_stats_from_booleans():
             count = 10
         count += 1
 
-def check_dir(directory_name):
-  if not os.path.exists(directory_name):
-    os.makedirs(directory_name)
+
 
 # This is the code I used to split the files into the new format by month
 # def reclassify_files():

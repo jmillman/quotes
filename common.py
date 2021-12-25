@@ -11,6 +11,7 @@ import re
 
 directory_daily_history = "./stock_history/2021/daily"
 file_name_gap = "./summary/gapped_up-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
+file_name_gap_down = "./summary/gapped_down-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
 # file_name_finviz_summary = 'summary/finviz-{}.csv'.format(datetime.now().strftime("%Y-%m-%d"))
 
 
@@ -81,6 +82,48 @@ def save_gap_up_data_to_summary_file(start, minimum_percentage):
                 results = results.append(matching_rows)
 
     results.to_csv(file_name_gap, mode='a+', header=True, index=False)
+
+def save_gap_down_data_to_summary_file(start, minimum_percentage):
+    files = sorted(glob.glob("{}/*.csv".format(directory_daily_history)))
+
+    results = pd.DataFrame()
+    for i in range(len(files)):
+        history = pd.read_csv(files[i])
+        history['datetime'] = pd.to_datetime(history['datetime'])
+        history['date_only'] = history['datetime'].dt.date
+
+        # this is the earliest I have 5 min data
+        # start = datetime(2020, 9, 14).date()
+        history = history[history['date_only'] >= start]
+        # history = history[history['date_only'] == datetime(2021, 2, 9).date()]
+
+        if history['low'].min() != 0:
+            history['close_yesterday'] = history.close.shift(1)
+            open = history['open']
+            close_yesterday = history['close_yesterday']
+            high = history['high']
+            low = history['low']
+            vol = history['volume']
+            gap_percent = ((open - close_yesterday) * 100 / close_yesterday)
+
+            history['closed_up'] = history['open'] < history['close']
+            history['gap_percent'] = gap_percent
+            history['closed_up'] = history['open'] < history['close']
+            history['gap_percent'] = gap_percent
+            history['max_up_percent'] = ((high - open) * 100 / open)
+            history['max_down_percent'] = ((open - low) * 100 / open)
+            history['max_up_percent_30'] = ((high - open) * 100 / open > 30)
+            history['max_down_percent_30'] = ((open - low) * 100 / open > 30)
+            history['max_up_percent_50'] = ((high - open) * 100 / open > 50)
+            history['max_down_percent_50'] = ((open - low) * 100 / open > 50)
+            history['max_up_percent_100'] = ((high - open) * 100 / open > 100)
+
+
+            matching_rows = history[(history['gap_percent'] <= minimum_percentage)]
+            if len(matching_rows):
+                results = results.append(matching_rows)
+
+    results.to_csv(file_name_gap_down, mode='a+', header=True, index=False)
 
 
 #     if history['low'].min() != 0:
@@ -550,80 +593,6 @@ def add_finviz_to_gap_up():
 
     gapped.to_csv(file_name_gap, index=False)
 
-
-def add_bool_columns_new(gapped, name):
-    gapped['{}_never_broke_pre_high'.format(name)] = gapped['{}_high'.format(name)] <= gapped['pre_market_high']
-    gapped['{}_never_broke_post_high'.format(name)] = gapped['{}_high'.format(name)] <= gapped['930_945_high']
-    gapped['{}_always_gt_open'.format(name)] = gapped['{}_low'.format(name)] >= gapped['day_open']
-    gapped['{}_always_lt_open'.format(name)] = gapped['{}_high'.format(name)] <= gapped['day_open']
-    gapped['{}_crosses_open'.format(name)] = (gapped['{}_low'.format(name)] <= gapped['day_open']) & (
-            gapped['{}_high'.format(name)] >= gapped['day_open'])
-    percent_change_high = (gapped['{}_high'.format(name)] - gapped['{}_open'.format(name)]) / gapped[
-        '{}_open'.format(name)]  # changed the denominator for slots
-    gapped['{}_closed_up'.format(name)] = (gapped['{}_close'.format(name)] > gapped['{}_open'.format(name)])
-    gapped['{}_max_hi'.format(name)] = percent_change_high
-    gapped['{}_max_hi_10p'.format(name)] = percent_change_high >= .10
-    gapped['{}_max_hi_25p'.format(name)] = percent_change_high >= .25
-    gapped['{}_max_hi_50p'.format(name)] = percent_change_high >= .50
-    gapped['{}_max_hi_100p'.format(name)] = percent_change_high >= 1
-
-    percent_change_low = (gapped['{}_open'.format(name)] - gapped['{}_low'.format(name)]) / gapped[
-        '{}_open'.format(name)]
-    gapped['{}_max_low'.format(name)] = percent_change_low
-    gapped['{}_max_low_10p'.format(name)] = percent_change_low >= .10
-    gapped['{}_max_low_25p'.format(name)] = percent_change_low >= .25
-    gapped['{}_max_low_50p'.format(name)] = percent_change_low >= .50
-
-    # gapped['{}_percent_both_10p'.format(name)] = bool(percent_change_high >= .10) and bool(percent_change_low >= .10)
-    # gapped['{}_percent_both_25p'.format(name)] = bool(percent_change_high >= .25) and bool(percent_change_low >= .25)
-    # gapped['{}_percent_both_50p'.format(name)] = bool(percent_change_high >= .50) and bool(percent_change_low >= .50)
-
-
-def add_booleans_new():
-    gapped = pd.read_csv(file_name_gap)
-
-    volume = gapped['volume']
-    gapped['volume'] = gapped['volume'].astype(float)
-    gapped['float'] = gapped['float'].astype(float)
-
-    gapped['first_bar_up'] = gapped['930_935_close'] >= gapped['930_935_open']
-    gapped['second_bar_up'] = gapped['935_940_close'] >= gapped['935_940_open']
-    gapped['both_bars_up'] = gapped['first_bar_up'] & gapped['second_bar_up']
-
-    gapped['rotate'] = gapped['volume'] < (gapped['float'] * 1000000)
-    gapped['rotate_count'] = gapped['volume'] / (gapped['float'] * 1000000)
-
-    slices = ['pre_market', 'day', '930_945', '945_950', '945_955', '945_10', '945_4', '930_10', '10_4', '930_1030',
-              '1030_4', '930_11', '11_4', '1130_4', '12_4']
-    for slice in slices:
-        add_bool_columns_new(gapped, slice)
-
-    gapped.to_csv(file_name_gap, index=False)
-
-
-def calculate_stats_from_booleans():
-    gapped = pd.read_csv(file_name_gap)
-    total = len(gapped)
-    df = pd.DataFrame(columns=['title', 'percent_true'])
-
-    newRow = {'title': 'total', 'percent_true': total}
-    df = df.append(newRow, ignore_index=True)
-
-    for col in gapped.columns:
-        if (gapped.dtypes[col] == 'bool'):
-            matching = len(gapped[gapped[col] == True])
-            percent_true = int(matching / total * 100)
-            newRow = {'title': col, 'percent_true': percent_true}
-            df = df.append(newRow, ignore_index=True)
-            print('{} {}'.format(col, percent_true))
-
-    count = 0
-    while count < 10:
-        file_name = "./summary/summary-{}-{}.csv".format(datetime.now().strftime("%Y-%m-%d"), count)
-        if not os.path.isfile(file_name):
-            df.to_csv(file_name, index=False)
-            count = 10
-        count += 1
 
 def check_dir(directory_name):
   if not os.path.exists(directory_name):
