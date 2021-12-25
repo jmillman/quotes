@@ -118,6 +118,7 @@ def save_gap_down_data_to_summary_file(start, minimum_percentage):
             history['max_down_percent_50'] = ((open - low) * 100 / open > 50)
             history['max_up_percent_100'] = ((high - open) * 100 / open > 100)
 
+
             matching_rows = history[(history['gap_percent'] <= minimum_percentage)]
             if len(matching_rows):
                 results = results.append(matching_rows)
