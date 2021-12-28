@@ -7,7 +7,6 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import os
 import re
-from common import
 
 
 directory_daily_history = "./stock_history/2021/daily"
@@ -78,6 +77,40 @@ def save_gap_up_data_to_summary_file(start, minimum_percentage):
             # history['both5'] = (bool(history['max_up_percent_threshold'] is True) and (history['max_down_percent_threshold'] is True)
 
             matching_rows = history[(history['gap_percent'] >= minimum_percentage) & (history['volume'] > 1000000)]
+            if len(matching_rows):
+                results = results.append(matching_rows)
+
+    results.to_csv(file_name_gap, mode='a+', header=True, index=False)
+
+
+def save_gap_down_data_to_summary_file(start, minimum_percentage):
+    files = sorted(glob.glob("{}/*.csv".format(directory_daily_history)))
+
+    results = pd.DataFrame()
+    for i in range(len(files)):
+        history = pd.read_csv(files[i])
+        history['datetime'] = pd.to_datetime(history['datetime'])
+        history['date_only'] = history['datetime'].dt.date
+
+        # this is the earliest I have 5 min data
+        # start = datetime(2020, 9, 14).date()
+        history = history[history['date_only'] >= start]
+        # history = history[history['date_only'] == datetime(2021, 2, 9).date()]
+
+        if history['low'].min() != 0:
+            history['close_yesterday'] = history.close.shift(1)
+            open = history['open']
+            close_yesterday = history['close_yesterday']
+            high = history['high']
+            low = history['low']
+            vol = history['volume']
+            gap_percent = ((open - close_yesterday) * 100 / close_yesterday)
+
+            history['gap_percent'] = gap_percent
+            history['max_up_percent'] = ((high - open) * 100 / open)
+            history['max_down_percent'] = ((open - low) * 100 / open)
+
+            matching_rows = history[(history['gap_percent'] <= minimum_percentage) & (history['volume'] > 1000000)]
             if len(matching_rows):
                 results = results.append(matching_rows)
 
@@ -680,10 +713,10 @@ if __name__ == "__main__":
 
     start = datetime(2021, 1, 1).date()
     save_gap_up_data_to_summary_file(start, 20)
-    add_finviz_to_gap_up()
+    # add_finviz_to_gap_up()
     add_high_low_time_to_gap_up()
-    add_booleans_new()
-    calculate_stats_from_booleans()
+    # add_booleans_new()
+    # calculate_stats_from_booleans()
 
 
 
