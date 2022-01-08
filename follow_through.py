@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # save_summary_to_file(start_date=start, end_date=end, percent_down=-40, file_name=file_name)
 
     file_name = "./summary/gap_down_30_2021.csv".format(datetime.now().strftime("%Y-%m-%d"))
-    save_summary_to_file(start_date=start, end_date=end, percent_down=-30, file_name=file_name, mimimum_open=1)
+    save_summary_to_file(start_date=start, end_date=end, percent_down=-30, file_name=file_name, mimimum_open=1, volume=1000000)
     # add_time_slices(file_name=file_name)
     # add_booleans(file_name=file_name)
     #
