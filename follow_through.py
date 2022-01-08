@@ -36,18 +36,18 @@ def add_booleans(file_name):
 if __name__ == "__main__":
     # You can set an end date if you wish
     start = datetime(2021, 1, 1).date()
-    end = datetime(2021, 2, 1).date()
+    end = datetime(2021, 12, 31).date()
     # end = None
 
     # most parameters are optional, you can pass in a percent down or a percent up, also volume
     # file_name = "gap_down_40-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
-    # save_summary_to_file(start_date=start, end_date=end, percent_down=-40, file_name=file_name, mimimum_open=1)
+    # save_summary_to_file(start_date=start, end_date=end, percent_down=-40, file_name=file_name)
 
-    file_name = "./summary/gap_up_40-{}.csv".format(datetime.now().strftime("%Y-%m-%d"))
-    save_summary_to_file(start_date=start, end_date=end, percent_up=40, file_name=file_name, mimimum_open=1)
-    add_time_slices(file_name=file_name)
-    add_booleans(file_name=file_name)
-
-    file_name_finviz = "stock_history/finviz/finviz-2021-10-30.csv"
-    add_finviz_to_gap_up(file_name_finviz, file_name)
+    file_name = "./summary/gap_down_30_2021.csv".format(datetime.now().strftime("%Y-%m-%d"))
+    save_summary_to_file(start_date=start, end_date=end, percent_down=-30, file_name=file_name, mimimum_open=1)
+    # add_time_slices(file_name=file_name)
+    # add_booleans(file_name=file_name)
+    #
+    # file_name_finviz = "stock_history/finviz/finviz-2021-10-30.csv"
+    # add_finviz_to_gap_up(file_name_finviz, file_name)
 
