@@ -82,7 +82,6 @@ def save_gap_up_data_to_summary_file(start, minimum_percentage):
 
     results.to_csv(file_name_gap, mode='a+', header=True, index=False)
 
-
 #     if history['low'].min() != 0:
 #       history['close_yesterday'] = history.close.shift(1)
 #       history['diff_percent'] = (history['open'] - history['close_yesterday']) * 100 / history['close_yesterday']
@@ -93,19 +92,6 @@ def save_gap_up_data_to_summary_file(start, minimum_percentage):
 #
 #   results.to_csv(file_name_gap, mode='a+', header=True, index=False)
 
-
-def get_symbols_over_million_volume():
-    files = glob.glob("{}/*.csv".format(directory_daily_history))
-
-    results = set()
-    for i in range(len(files)):
-        # converter needed for symbol TRUE
-        history = pd.read_csv(files[i], converters={"symbol": str})
-        if history['volume'].max() > 1000000:
-            results.add(history.iloc[0]['symbol'])
-            if True in results:
-                print(results)
-    return results
 
 
 def get_data_finviz(symbol):
@@ -182,7 +168,7 @@ def get_data_yahoo(symbol):
   return results
 
 def save_active_stocks_finviz_to_file(update_only_missing_symbols=False):
-    file_name_finviz = "./summary/finviz-2021-10-30.csv"
+    file_name_finviz = "stock_history/finviz/finviz-2021-10-30.csv"
     symbols = []
     if update_only_missing_symbols:
         gapped = pd.read_csv(file_name_gap)
@@ -508,49 +494,6 @@ def convert_billion_to_mill(str):
         return float(str.replace("M", ""))
 
 
-def add_finviz_to_gap_up():
-    file_name_finviz = "./summary/finviz-2021-10-30.csv"
-    gapped = pd.read_csv(file_name_gap)
-    finviz = pd.read_csv(file_name_finviz)
-    for i, row in gapped.iterrows():
-        missingData = False
-        symbol = row['symbol']
-        finviz_item = finviz[finviz['Symbol'] == symbol]
-
-        if (len(finviz_item)):
-
-            # If no float, but shares use shares for float and vice versa
-            # typically it's really low shares outstanding so the float has to be less than that
-            float_shrs = finviz_item.iloc[0]['Shs Float']
-            if float_shrs in ['Not Found', 'N/A', '-']:
-                float_shrs = 0
-                missingData = True
-
-            shares = finviz_item.iloc[0]['Shs Outstand']
-            if shares in ['Not Found', 'N/A', '-']:
-                missingData = True
-                shares = float_shrs
-
-            if float_shrs == 0:
-                float_shrs = shares
-
-            if(float_shrs != 0):
-                float_shrs = convert_billion_to_mill(float_shrs)
-            if(shares != 0):
-                shares = convert_billion_to_mill(shares)
-            gapped.loc[i, 'float'] = shares
-            gapped.loc[i, 'shares'] = shares
-            gapped.loc[i, 'market_cap'] = "{:.2f}".format(shares * float(gapped.loc[i, 'close_yesterday']))
-        else:
-            missingData = True
-            print('Finviz missing symbol: {}'.format(symbol))
-
-        if missingData == True:
-            gapped.loc[i, 'DATA_MISSING_FINVIZ'] = True
-
-    gapped.to_csv(file_name_gap, index=False)
-
-
 def add_bool_columns_new(gapped, name):
     gapped['{}_never_broke_pre_high'.format(name)] = gapped['{}_high'.format(name)] <= gapped['pre_market_high']
     gapped['{}_never_broke_post_high'.format(name)] = gapped['{}_high'.format(name)] <= gapped['930_945_high']
@@ -666,23 +609,18 @@ def check_dir(directory_name):
 
 if __name__ == "__main__":
 
-    # Will save finviz data for any stock that had over a million in volume
-    # save_active_stocks_finviz_to_file()
-
     # find gap up instances, save to file
     # start = datetime(2021, 1, 1).date()
     # save_gap_up_data_to_summary_file(start, 30)
     # add_high_low_to_gap_up()
-    # add_finviz_to_gap_up()
     # add_volume_to_gap_up()
     # add_booleans_to_gap_up()
 
     start = datetime(2021, 1, 1).date()
     save_gap_up_data_to_summary_file(start, 20)
-    add_finviz_to_gap_up()
     add_high_low_time_to_gap_up()
-    add_booleans_new()
-    calculate_stats_from_booleans()
+    # add_booleans_new()
+    # calculate_stats_from_booleans()
 
 
 
