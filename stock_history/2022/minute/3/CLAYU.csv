@@ -1,0 +1,2 @@
+open,high,low,close,volume,datetime,symbol
+10.0,10.0,10.0,10.0,665,2022-03-21 20:00:00,CLAYU
