@@ -1,0 +1,3 @@
+open,high,low,close,volume,datetime,symbol
+9.84,9.9,9.84,9.9,4100,2022-05-24 17:00:00,OSTRU
+9.9,9.9,9.9,9.9,100,2022-05-24 17:01:00,OSTRU
